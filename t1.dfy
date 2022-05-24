@@ -1,180 +1,105 @@
-class {:autocontracts}  Pilha
+class {:autocontracts} Stack
 {
-    //Implementação
+    ghost var Contents: seq<int>;
     var a: array<int>;
-    var header: nat;
-    var empty: bool;
-    var amount: nat;
-    //Abstração
-    ghost var Conteudo: seq<int>;
-
-    predicate Valid()
-    {
-        header < a.Length-1
-        &&(!empty ==> Conteudo == a[0..header])
-        &&(|Conteudo| == header+1)
-        &&(!empty ==> amount>0)
-        && empty ==> Conteudo == []
+    var size: nat
+    predicate Valid(){
+        0 < a.Length
+        && size <= a.Length
+        && Contents == a[0..size]
     }
 
-    constructor()
-        ensures Conteudo == []
-        ensures header == 0
-        ensures header < a.Length - 1
-        ensures empty
+    constructor ()
+        ensures Contents == [];
     {
-        empty := true;
-        header := 0;
-        a := new int[10];
-        amount := 0;
-        Conteudo := [];
-
+        Contents := [];
+        a := new int[100];
+        size := 0;
     }
 
-    method Empilha(e:int)
-        requires header < a.Length-1
-        requires header == |Conteudo|-1
-        requires Conteudo == a[0..header]
-        ensures empty == false
-        ensures header < a.Length-1
-        ensures old(!empty) ==> old(header)+1 == header
-        ensures header == |Conteudo|-1
+    method insert(e:int)
+        ensures Contents == old(Contents) + [e]
     {
-
-        if(!empty){
-            assert((!empty ==> Conteudo == a[0..header]));
-            header := header+1;
-        }
-        empty := false;
-        amount := amount + 1;
-        a[header] := e;
-        Conteudo := Conteudo + [e];
-
-        if(header == a.Length-1){
-            var b:array<int> := new int[a.Length * 2];
-            var i:nat := 0;
-            while(i < a.Length)
-            invariant a.Length < b.Length
-            && header == a.Length-1 
-            && empty == false
-            {
-                b[i] := a[i];
-                i:= i+1;
+        size := size + 1;
+        if(size > a.Length){
+            var b := new int[2*size];
+            forall(i | 0 < i < size){
+                b[i-1] := a[i-1];
             }
             a:=b;
         }
-
+        a[size-1] := e;
+        Contents := Contents + [e];
     }
 
-
-    method Peek() returns (val:int)
-    requires header == |Conteudo|-1
-    requires !empty
-    requires header < a.Length-1
-    ensures header < a.Length -1
-    ensures a[header] == old(a[header])
-    ensures header == |Conteudo|-1
+    method pop() returns(e:int)
+        requires Contents != []
+        ensures e == old(Contents)[old(size)-1]
+        ensures Contents == old(Contents)[0..old(size)-1]
     {
-        return a[header];
+        size := size - 1;
+        e := a[size];
+        Contents := Contents[0..size];
     }
 
-    method Pop() returns (val:int)
-    requires header == |Conteudo|-1
-    requires header < a.Length-1
-    requires !empty && amount>0;
-    requires |Conteudo| == header+1;
-    ensures old(header) == 0 ==> empty
-    ensures old(header)>0 ==> old(header)-1 == header
-    ensures old(!empty) ==> header < a.Length-1
-    ensures header == |Conteudo|-1 || empty
+    method peek() returns(e:int)
+        requires Contents != []
+        ensures e == old(Contents)[old(size)-1]
+        ensures Contents == old(Contents)
     {
-        val := a[header];
-        if(header == 0){
-            empty := true;
-            Conteudo := [];
-        }else{
-            header := header-1;
-            Conteudo := Conteudo[0..header];
-        }
-        amount := amount - 1;
-        return val;
+        return a[size-1];
     }
 
-    method isEmpty() returns (b:bool)
-    requires header == |Conteudo|-1
-    requires header < a.Length-1
-    ensures b == empty
-    ensures header < a.Length-1
-    ensures header == |Conteudo|-1
+    method isEmpty() returns(b:bool)
+        ensures b == (size == 0);
     {
-        return empty;
+        return size == 0;
     }
 
-    method howMany() returns (n:nat)
-    requires header == |Conteudo|-1
-    requires header < a.Length-1
-    ensures n == amount
-    ensures header < a.Length-1
-    ensures header == |Conteudo|-1
+    method getSize() returns(n:nat)
+        ensures n == size
     {
-        return amount;
+        return size;
+    }
+
+    function rev_seq(s :seq): seq
+    ensures |s| == |rev_seq(s)|
+    ensures forall k:nat :: 0 < k < |s| ==>  s[k] == rev_seq(s)[|s|-1-k]
+    {
+        if s == [] then [] else rev_seq(s[1..]) + s[0..1]
     }
 
     method reverse()
-    requires header == |Conteudo|-1
-    requires header < a.Length-1
-    requires |Conteudo| == a.Length
-    requires a.Length > 0
-    requires Conteudo == a[0..header]
-    ensures header < a.Length-1
-    ensures header == |Conteudo|-1
     {
-        ghost var Conteudo2: seq<int> := [];
-        var i := 1;
-        var b:array<int> := new int[a.Length];
+    // ???????
 
-        while(i <= header)
-        invariant a.Length == b.Length 
-        && a.Length == |Conteudo|
-        && header < b.Length - 1
-        {
-            Conteudo2 := Conteudo2 + [Conteudo[|Conteudo|-i-1]];
-            b[i-1] := a[i-1];
-            i := i+1;
-        }
-        a:=b;
-        Conteudo := Conteudo2;
     }
 
-
-    method Main()
-    {
-        var pilha := new Pilha();
-        assert pilha.empty;
+    method Main(){
+        var pilha := new Stack();
         var vazia := pilha.isEmpty();
         assert vazia == true;
 
-        pilha.Empilha(1);
-        pilha.Empilha(3);
-        pilha.Empilha(4);
-        assert pilha.Conteudo == [1,3,4];
+        pilha.insert(1);
+        pilha.insert(3);
+        pilha.insert(4);
+        assert pilha.Contents == [1,3,4];
 
         var vazia2 := pilha.isEmpty();
         assert vazia2 == false;
 
-        pilha.reverse();
-        assert pilha.Conteudo == [4,3,1];
+        //pilha.reverse();
+        //assert pilha.Contents == [4,3,1];
 
-        var quantity := pilha.howMany();
+        var quantity := pilha.getSize();
         assert quantity == 3;
         
-        var peek := pilha.Peek();
-        assert peek == 1;
+        var peek := pilha.peek();
+        assert peek == 4;
 
-        var pop := pilha.Pop();
-        assert pop == 1;
-
-
+        var pop := pilha.pop();
+        assert pop == 4;
     }
-    
+
+
 }
