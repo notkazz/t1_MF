@@ -70,9 +70,35 @@ class {:autocontracts} Stack
     }
 
     method reverse()
+        ensures |Contents| == old(|Contents|)
+        ensures forall k:nat :: 0 <= k < |Contents| ==> Contents[k] == old(Contents)[|Contents|-1-k]
     {
-    // ???????
+        var i:nat := 0;
+        var b:array<int> := new int[a.Length];
 
+        while(i < size)
+        invariant 
+        i <= size <= b.Length
+        && a == old(a)
+        && Contents == old(Contents)
+        && Contents == a[0..size]
+        && (forall k:nat :: 0 <= k < i ==> b[k] == a[size-1-k])
+        && Repr == old(Repr)
+        {
+            b[i] := a[size-i-1];
+            i:=i+1;
+        }
+        assert(i == size);
+        assert(a in Repr);
+        a := b;
+        Contents := a[0..size];
+
+        assert(0 < a.Length);
+        assert(size <= a.Length);
+        assert(Contents == a[0..size]);
+        assert(size == old(size));
+        assert(forall k:nat :: 0 <= k < |Contents| ==> Contents[k] == old(Contents)[size-1-k]);
+        assert(0 < a.Length && size <= a.Length && Contents == a[0..size]);
     }
 
     method Main(){
@@ -88,17 +114,17 @@ class {:autocontracts} Stack
         var vazia2 := pilha.isEmpty();
         assert vazia2 == false;
 
-        //pilha.reverse();
-        //assert pilha.Contents == [4,3,1];
+        pilha.reverse();
+        assert pilha.Contents == [4,3,1];
 
         var quantity := pilha.getSize();
         assert quantity == 3;
         
         var peek := pilha.peek();
-        assert peek == 4;
+        assert peek == 1;
 
         var pop := pilha.pop();
-        assert pop == 4;
+        assert pop == 1;
     }
 
 
